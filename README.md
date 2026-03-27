@@ -114,3 +114,143 @@ Foundation Ready: The logic is ready to be wrapped in a FastAPI service.
 If asked: “What did you build for the ML component?”
 
 “I implemented a collaborative filtering-based recommendation system. I used Pandas for matrix pivot transformations and Scikit-Learn’s Cosine Similarity to identify user clusters. I then serialized the model using Pickle to ensure it can be served efficiently via an API.”
+
+
+## 📘 Day 2 — Convert ML Model into FastAPI Service
+This guide shows how to take a trained ML model (model.pkl) and expose it as a REST API using FastAPI.
+By the end, you’ll have a working Model Inference Service running locally.
+
+## 🎯 Goals
+Create a FastAPI app
+
+Add /recommend endpoint
+
+Load ML model inside API
+
+Test API locally with Swagger UI
+
+🛠 Prerequisites
+Python 3.9+ installed
+
+A trained ML model saved as model.pkl (matrix + similarity objects)
+
+Git + terminal access
+
+🛠 Step 1 — Setup Virtual Environment
+````bash
+# Navigate to project folder
+cd mlops-project
+
+# Create virtual environment
+python3 -m venv .venv
+
+# Activate environment
+source .venv/bin/activate
+
+# Upgrade pip
+python -m pip install --upgrade pip setuptools wheel
+````
+🛠 Step 2 — Install Dependencies
+Create a requirements.txt file:
+
+````Code
+fastapi
+uvicorn
+numpy
+pandas
+````
+Install dependencies:
+
+````bash
+pip install -r requirements.txt
+````
+🛠 Step 3 — Create FastAPI App
+Create a file named app.py:
+
+````python
+from fastapi import FastAPI
+import pickle
+import numpy as np
+import pandas as pd
+
+app = FastAPI()
+
+# Load model
+with open("model.pkl", "rb") as f:
+    matrix, similarity = pickle.load(f)
+
+def recommend(user_id: int):
+    # Find user index
+    user_index = list(matrix.index).index(user_id)
+    scores = similarity[user_index]
+
+    # Sort similar users
+    similar_users = np.argsort(scores)[::-1][1:3]
+
+    recommendations = set()
+
+    for user in similar_users:
+        movies = matrix.iloc[user]
+        recommended_movies = movies[movies > 3].index
+        recommendations.update(recommended_movies)
+
+    return list(recommendations)[:5]
+
+@app.get("/")
+def root():
+    return {"message": "Recommendation API running"}
+
+@app.post("/recommend")
+def get_recommendations(user_id: int):
+    result = recommend(user_id)
+    return {"user_id": user_id, "recommendations": result}
+````
+🛠 Step 4 — Run API
+Start the server:
+
+````bash
+uvicorn app:app --reload
+`````
+You should see logs showing Uvicorn running on 127.0.0.1:8000.
+
+🛠 Step 5 — Test API
+Open browser:
+
+Root endpoint: http://127.0.0.1:8000  
+→ Should return {"message": "Recommendation API running"}
+
+Swagger UI: http://127.0.0.1:8000/docs  
+→ Test POST /recommend with input:
+
+````json
+{
+  "user_id": 1
+}
+`````
+Expected output:
+
+````json
+{
+  "user_id": 1,
+  "recommendations": [
+    101,
+    102,
+    103,
+    104,
+    106
+  ]
+}
+````
+✅ Success Checklist
+FastAPI running
+
+Model loaded successfully
+
+/recommend endpoint working
+
+Swagger UI tested
+
+💡 Interview Upgrade
+If asked “How do you deploy ML models?” you can say:
+
+“I convert trained ML models into REST APIs using FastAPI, allowing them to serve real‑time predictions in scalable environments.”
