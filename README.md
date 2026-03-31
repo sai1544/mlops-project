@@ -418,3 +418,111 @@ Verified repository and tags
 If asked “How do you deploy ML models?” you can say:
 
 “I containerize ML services with Docker, push them into Azure Container Registry, and manage versioned images that can be pulled by AKS clusters or CI/CD pipelines.”
+
+
+
+## 📘 Day 5 — Deploy AI Service to Kubernetes (AKS)
+On Day 5, we deployed our containerized ML service into Azure Kubernetes Service (AKS). This is the real production step: running AI workloads inside a cluster.
+
+🎯 Goals
+Create Kubernetes namespace
+
+Deploy FastAPI ML app as pods
+
+Expose app internally via Service
+
+Verify pods and service are running
+
+🛠 Step 1 — Create Namespace
+```bash
+kubectl create namespace ai-app
+```
+🛠 Step 2 — Create Deployment
+Create a file deployment.yaml:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-app
+  namespace: ai-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-app
+  template:
+    metadata:
+      labels:
+        app: ai-app
+    spec:
+      containers:
+      - name: ai-app
+        image: mlacr1544.azurecr.io/ai-app:v1
+        ports:
+        - containerPort: 8000
+```
+Apply it:
+
+```bash
+kubectl apply -f deployment.yaml
+```
+Check pods:
+
+```bash
+kubectl get pods -n ai-app
+```
+🛠 Step 3 — Create Service
+Create a file service.yaml:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+  namespace: ai-app
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-app
+  ports:
+  - port: 80
+    targetPort: 8000
+```
+Apply it:
+
+```bash
+kubectl apply -f service.yaml
+```
+Check service:
+
+```bash
+kubectl get svc -n ai-app
+```
+🧪 Step 4 — Test Inside Cluster
+Run a temporary test pod:
+
+```bash
+kubectl run test-pod --image=busybox -it --rm -- /bin/sh
+```
+Inside the pod:
+
+```bash
+wget -qO- http://ai-service.ai-app.svc.cluster.local
+```
+👉 You should see the FastAPI root response:
+{"message": "Recommendation API running"}
+
+✅ Success Checklist
+Pods running in namespace
+
+Service created and mapped to pods
+
+Internal API accessible via cluster DNS
+
+No crash errors in logs
+
+💡 Interview Upgrade
+If asked “How do you deploy ML models in Kubernetes?” you can say:
+
+“I containerize the model inference service, deploy it using Kubernetes Deployments, and expose it via a Service for internal communication. This ensures scalability, reliability, and production‑grade orchestration.”
