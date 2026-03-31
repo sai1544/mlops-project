@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-app
+  namespace: ai-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-app
+  template:
+    metadata:
+      labels:
+        app: ai-app
+    spec:
+      containers:
+      - name: ai-app
+        image: mlacr1544.azurecr.io/ai-app:v1
+        ports:
+        - containerPort: 8000
