@@ -526,3 +526,110 @@ No crash errors in logs
 If asked “How do you deploy ML models in Kubernetes?” you can say:
 
 “I containerize the model inference service, deploy it using Kubernetes Deployments, and expose it via a Service for internal communication. This ensures scalability, reliability, and production‑grade orchestration.”
+
+
+
+## 🚀 DAY 6 — Expose AI Service using Ingress
+
+Right now your app is only accessible inside the cluster.
+
+We now make it accessible from:
+
+Browser / Postman / Internet
+
+
+---
+
+## 🎯 Goal of Day 6
+
+By end of today:
+
+✔ Ingress Controller installed
+✔ Ingress resource created
+✔ External access working
+✔ /recommend endpoint accessible
+
+
+---
+
+🛠 Step 1 — Install Ingress Controller
+Run:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+```
+Wait 2–3 minutes, then check:
+
+```bash
+kubectl get pods -n ingress-nginx
+```
+👉 You should see pods like ingress-nginx-controller in Running state.
+
+🛠 Step 2 — Get External IP
+```bash
+kubectl get svc -n ingress-nginx
+```
+Look for the EXTERNAL-IP under the ingress-nginx-controller service. This is the public entry point.
+
+🛠 Step 3 — Create Ingress Resource
+Make a file ingress.yaml:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-ingress
+  namespace: ai-app
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-service
+            port:
+              number: 80
+```
+Apply it:
+
+```bash
+kubectl apply -f ingress.yaml
+```
+🧪 Step 4 — Test External Access
+Open browser or Postman:
+
+```Code
+http://<EXTERNAL-IP>/docs
+```
+👉 You should see FastAPI Swagger UI.
+Then test your /recommend endpoint.
+
+✅ Success Checklist
+Ingress controller installed
+
+External IP obtained
+
+Ingress resource applied
+
+API accessible from browser
+
+⚡ If it doesn’t work:
+
+```bash
+kubectl describe ingress ai-ingress -n ai-app
+kubectl get svc -n ingress-nginx
+```
+This is the production‑grade exposure layer:
+User → Ingress → Service → Pods → ML Model.
+
+💬 Interview Upgrade
+
+If asked:
+
+> “How do you expose services in Kubernetes?”
+
+You say:
+
+> I use an Ingress controller to route external traffic to services inside the cluster using HTTP routing rules.
