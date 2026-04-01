@@ -56,3 +56,52 @@ The external IP is reachable, but traffic never routes to your service/pods.
 You only see the default 404 page from NGINX.
 
 So the root issue was missing ingressClassName, and the solution was explicitly binding the Ingress to the NGINX controller.
+
+
+
+## ⚠️ Issue Faced
+After deploying the AI app with Helm, the Ingress showed an external IP, but accessing http://<EXTERNAL-IP>/docs returned 502 Bad Gateway.
+
+> Root cause:  
+The Kubernetes Service was forwarding traffic to targetPort: 8000, but inside the container FastAPI was actually listening on 8081.
+This mismatch meant NGINX Ingress could reach the Service, but the Service couldn’t forward traffic correctly to the pods.
+
+## 🛠 Resolution
+Identified mismatch by checking Service endpoints and pod configuration.
+
+Service was mapping 80 → 8000.
+
+Pods were listening on 8081.
+
+Updated Helm chart Service template (ai-app-chart/templates/service.yaml):
+
+```yaml
+ports:
+  - port: 80
+    targetPort: 8081
+```
+Upgraded Helm release to apply the fix:
+
+```bash
+helm upgrade ai-release ./ai-app-chart -n ai-app
+```
+Verified endpoints:
+
+```bash
+kubectl get endpoints ai-service -n ai-app
+```
+Now showed pod IPs bound to 8081.
+
+Tested external access:
+
+```Code
+curl http://<EXTERNAL-IP>/docs
+```
+✅ FastAPI Swagger UI loaded successfully.
+
+✅ Lesson Learned
+Always align containerPort in Deployment with targetPort in Service.
+
+> Ingress → Service → Pod chain must be consistent.
+
+
