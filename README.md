@@ -544,10 +544,10 @@ Browser / Postman / Internet
 
 By end of today:
 
-✔ Ingress Controller installed
-✔ Ingress resource created
-✔ External access working
-✔ /recommend endpoint accessible
+> ✔ Ingress Controller installed
+> ✔ Ingress resource created
+> ✔ External access working
+> ✔ /recommend endpoint accessible
 
 
 ---
@@ -633,3 +633,185 @@ If asked:
 You say:
 
 > I use an Ingress controller to route external traffic to services inside the cluster using HTTP routing rules.
+
+
+
+
+# Day 7 — Helm Charts for AI Service
+
+## 🎯 Goal
+Convert raw Kubernetes YAML manifests into a **Helm chart** for production‑grade packaging and deployment.
+
+By the end of this day:
+- Helm installed
+- Helm chart created
+- Deployment, Service, and Ingress templated
+- Values.yaml configured
+- Application deployed via Helm
+- Verified external access through Ingress
+
+---
+
+## 🛠 Step 1 — Install Helm
+Check if Helm is installed:
+```bash
+helm version
+```
+
+If not installed:
+```bash
+sudo apt update
+sudo apt install helm -y
+```
+
+---
+
+## 🛠 Step 2 — Create Helm Chart
+```bash
+helm create ai-app-chart
+```
+
+This generates:
+```
+ai-app-chart/
+  Chart.yaml
+  values.yaml
+  templates/
+```
+
+---
+
+## 🛠 Step 3 — Clean Default Templates
+Remove default files:
+```bash
+rm -rf ai-app-chart/templates/*
+```
+
+---
+
+## 🛠 Step 4 — Deployment Template
+Create `ai-app-chart/templates/deployment.yaml`:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: ai-app
+  template:
+    metadata:
+      labels:
+        app: ai-app
+    spec:
+      containers:
+      - name: ai-app
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: 8081
+```
+
+---
+
+## 🛠 Step 5 — Service Template
+Create `ai-app-chart/templates/service.yaml`:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-app
+  ports:
+  - port: 80
+    targetPort: 8081
+```
+
+---
+
+## 🛠 Step 6 — Ingress Template
+Create `ai-app-chart/templates/ingress.yaml`:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-service
+            port:
+              number: 80
+```
+
+---
+
+## 🛠 Step 7 — Update values.yaml
+Edit `ai-app-chart/values.yaml`:
+
+```yaml
+replicaCount: 2
+
+image:
+  repository: <your-acr-name>.azurecr.io/ai-app
+  tag: v1
+```
+
+---
+
+## 🛠 Step 8 — Deploy with Helm
+```bash
+helm install ai-release ./ai-app-chart -n ai-app
+```
+
+If upgrading:
+```bash
+helm upgrade ai-release ./ai-app-chart -n ai-app
+```
+
+---
+
+## 🧪 Step 9 — Verify Deployment
+Check resources:
+```bash
+kubectl get all -n ai-app
+kubectl get ingress -n ai-app
+```
+
+Test external access:
+```bash
+curl http://<EXTERNAL-IP>/docs
+```
+
+---
+
+## ✅ Success Checklist
+- Helm installed  
+- Chart created  
+- Templates working  
+- Deployment via Helm  
+- App accessible externally  
+
+---
+
+## 💡 Interview Upgrade
+If asked:
+> “Why Helm?”
+
+You can say:
+> Helm packages Kubernetes applications into reusable charts, making deployments configurable, version‑controlled, and easier to manage across environments.
+
+
