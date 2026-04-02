@@ -815,3 +815,90 @@ You can say:
 > Helm packages Kubernetes applications into reusable charts, making deployments configurable, version‑controlled, and easier to manage across environments.
 
 
+## 🚀 Day 8 — GitOps with ArgoCD
+
+### 🎯 Goal
+By the end of today:
+- ArgoCD installed  
+- UI accessible  
+- Logged in successfully  
+- Dashboard visible  
+
+---
+
+### 🛠 Step 1 — Create Namespace
+```bash
+kubectl create namespace argocd
+```
+
+---
+
+### 🛠 Step 2 — Install ArgoCD
+```bash
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+Wait 2–3 minutes, then check:
+```bash
+kubectl get pods -n argocd
+```
+👉 All pods should be in **Running** state.
+
+---
+
+### 🛠 Step 3 — Expose ArgoCD UI
+Forward the service:
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+Open browser:
+```
+http://localhost:8080
+```
+
+---
+
+### 🛠 Step 4 — Get Login Password
+```bash
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+```
+
+Login:
+- Username: `admin`  
+- Password: `<output>`  
+
+---
+
+### 🧠 What You See
+ArgoCD dashboard with:
+- Applications  
+- Sync status  
+- Deployment state  
+
+---
+
+### ✅ Success Checklist
+- ArgoCD installed  
+- UI accessible  
+- Logged in successfully  
+- Dashboard visible  
+
+---
+
+### 💡 Interview Upgrade
+If asked:
+> “What is GitOps?”
+
+You say:
+> GitOps is a deployment approach where Git is the single source of truth, and tools like ArgoCD automatically sync Kubernetes state with Git repositories.
+
+---
+
+⚡ If UI doesn’t open:
+```bash
+kubectl get svc -n argocd
+kubectl port-forward svc/argocd-server -n argocd 8081:443
+```
+
+
