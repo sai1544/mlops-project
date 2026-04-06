@@ -122,7 +122,7 @@ tolerations: []
 
 affinity: {}
 
-replicaCount: 2
+replicaCount: 3
 
 image:
   repository: mlacr1544.azurecr.io/ai-app
