@@ -902,3 +902,135 @@ kubectl port-forward svc/argocd-server -n argocd 8081:443
 ```
 
 
+## 🚀 Day 9 — GitHub + ArgoCD = Real GitOps
+
+## 🎯 Goal
+By the end of Day 9:
+- Helm chart pushed to GitHub
+- ArgoCD Application created
+- Automatic sync enabled
+- Verified Git‑driven deployment (no manual `kubectl apply`)
+
+---
+
+## 🛠 Step 1 — Push Helm Chart to GitHub
+Ensure your repo has the chart structure:
+```
+repo/
+ai-app-chart/
+Chart.yaml
+values.yaml
+templates/
+```
+Code
+
+Push to GitHub:
+```bash
+git add .
+git commit -m "Add Helm chart for AI app"
+git push origin main
+```
+🛠 Step 2 — Access ArgoCD UI
+Since Jenkins is on 8080, forward ArgoCD on 8081:
+
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8081:443
+```
+Open browser:
+
+```Code
+https://localhost:8081
+```
+Login:
+
+```bash
+kubectl get secret argocd-initial-admin-secret -n argocd \
+  -o jsonpath="{.data.password}" | base64 -d
+Username: admin
+
+Password: (output above)
+```
+
+🛠 Step 3 — Create ArgoCD Application
+
+In ArgoCD UI → NEW APP
+
+Fill details:
+
+Application Name: ai-app
+
+Project: default
+
+Sync Policy: Automatic
+
+Repository URL: `https://github.com/<your-username>/<repo-name>`
+
+Path: ai-app-chart
+
+Cluster URL: `https://kubernetes.default.svc`
+
+Namespace: ai-app
+
+Click Create.
+
+🛠 Step 4 — Sync
+Click SYNC → Watch status change to:
+
+Healthy
+
+Synced
+
+🛠 Step 5 — Test GitOps
+Edit values.yaml in GitHub:
+
+```yaml
+replicaCount: 3
+
+image:
+  repository: mlacr1544.azurecr.io/ai-app
+  tag: v1
+  pullPolicy: IfNotPresent
+```
+Commit and push:
+
+```bash
+git add values.yaml
+git commit -m "Scale replicas to 3 via GitOps"
+git push origin main
+```
+ArgoCD will detect the change and auto‑update your cluster.
+
+🛠 Step 6 — Verify in Cluster
+```bash
+kubectl get deployment ai-app -n ai-app
+kubectl get pods -n ai-app
+```
+Expected output:
+
+```Code
+NAME     READY   UP-TO-DATE   AVAILABLE   AGE
+ai-app   3/3     3            3           <age>
+
+NAME                      READY   STATUS    RESTARTS   AGE
+ai-app-xxxxxx-abcde       1/1     Running   0          <age>
+ai-app-xxxxxx-fghij       1/1     Running   0          <age>
+ai-app-xxxxxx-klmno       1/1     Running   0          <age>
+```
+✅ Day 9 Success Checklist
+Helm chart in GitHub
+
+ArgoCD Application created
+
+Sync working
+
+Auto deployment verified (replicas scaled via Git commit)
+
+💡 Interview Upgrade
+If asked:
+
+> “How do you implement GitOps?”
+
+Answer:
+
+> I use ArgoCD to monitor a Git repository containing Helm charts, and automatically synchronize Kubernetes cluster state >
+> with Git. This enables declarative, version‑controlled, and automated deployments.
