@@ -544,10 +544,10 @@ Browser / Postman / Internet
 
 By end of today:
 
-> ✔ Ingress Controller installed
-> ✔ Ingress resource created
-> ✔ External access working
-> ✔ /recommend endpoint accessible
+✔ Ingress Controller installed.
+✔ Ingress resource created.
+✔ External access working.
+✔ /recommend endpoint accessible.
 
 
 ---
@@ -1032,5 +1032,141 @@ If asked:
 
 Answer:
 
-> I use ArgoCD to monitor a Git repository containing Helm charts, and automatically synchronize Kubernetes cluster state >
+> I use ArgoCD to monitor a Git repository containing Helm charts, and automatically synchronize Kubernetes cluster state 
 > with Git. This enables declarative, version‑controlled, and automated deployments.
+
+## 🚀 Day 10 — Multi‑Environment GitOps
+## 🎯 Goal
+By the end of today:
+
+Separate namespaces for dev, staging, prod
+
+Different configs per environment
+
+Three ArgoCD Applications
+
+Verified promotion flow
+
+🛠 Step 1 — Create Namespaces
+Run:
+
+```bash
+kubectl create namespace dev
+kubectl create namespace staging
+kubectl create namespace prod
+```
+Verify:
+
+```bash
+kubectl get ns
+```
+👉 You should see dev, staging, prod.
+
+🛠 Step 2 — Create Separate Values Files
+Inside your Helm chart (ai-app-chart/), create three files:
+
+`values-dev.yaml`
+
+```yaml
+replicaCount: 1
+image:
+  repository: mlacr1544.azurecr.io/ai-app
+  tag: v1
+  pullPolicy: IfNotPresent
+```
+`values-staging.yaml`
+
+```yaml
+replicaCount: 2
+image:
+  repository: mlacr1544.azurecr.io/ai-app
+  tag: v1
+  pullPolicy: IfNotPresent
+```
+`values-prod.yaml`
+
+```yaml
+replicaCount: 3
+image:
+  repository: mlacr1544.azurecr.io/ai-app
+  tag: v1
+  pullPolicy: IfNotPresent
+```
+Push them to GitHub:
+
+```bash
+git add values-*.yaml
+git commit -m "Add multi-environment values files"
+git push origin main
+```
+🛠 Step 3 — Create ArgoCD Applications
+In ArgoCD UI → NEW APP (repeat 3 times):
+
+`DEV APP`
+
+Name: ai-app-dev
+
+Namespace: dev
+
+Path: ai-app-chart
+
+Values file: values-dev.yaml
+
+`STAGING APP`
+
+Name: ai-app-staging
+
+Namespace: staging
+
+Path: ai-app-chart
+
+Values file: values-staging.yaml
+
+`PROD APP`
+
+Name: ai-app-prod
+
+Namespace: prod
+
+Path: ai-app-chart
+
+Values file: values-prod.yaml
+
+👉 Each app points to the same repo, but uses a different values file + namespace.
+
+🛠 Step 4 — Sync All Apps
+Click SYNC for each Application.
+
+Verify:
+
+```bash
+kubectl get pods -n dev
+kubectl get pods -n staging
+kubectl get pods -n prod
+```
+👉 You should see 1 pod in dev, 2 in staging, 3 in prod.
+
+🧪 Step 5 — Test Promotion
+Change image tag in GitHub (e.g., tag: v2 in values-dev.yaml), push, and sync.
+Watch dev update first.
+Then promote to staging/prod by updating their values files.
+
+✅ Day 10 Success Checklist
+dev/staging/prod namespaces created
+
+Separate values files committed
+
+Three ArgoCD Applications configured
+
+Sync working across environments
+
+Promotion flow tested
+
+💡 Interview Upgrade
+If asked:
+
+“How do you manage environments?”
+
+Answer:
+
+> I manage multiple environments using GitOps by maintaining separate configuration values and ArgoCD applications for dev, > staging, and production. This ensures consistent deployments while allowing controlled promotion from dev → staging → >prod.
