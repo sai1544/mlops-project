@@ -1,0 +1,6 @@
+replicaCount: 1
+image:
+  repository: mlacr1544.azurecr.io/ai-app
+  tag: v1
+  pullPolicy: IfNotPresent
+
