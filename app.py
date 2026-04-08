@@ -28,7 +28,7 @@ def recommend(user_id: int):
 
 @app.get("/")
 def root():
-    return {"message": "Recommendation API running"}
+    return {"message": "Sai Your Recommendation API running"}
 
 @app.post("/recommend")
 def get_recommendations(user_id: int):
