@@ -1170,3 +1170,108 @@ If asked:
 Answer:
 
 > I manage multiple environments using GitOps by maintaining separate configuration values and ArgoCD applications for dev, > staging, and production. This ensures consistent deployments while allowing controlled promotion from dev → staging → >prod.
+
+
+## 🚀 Day 11 — CI/CD + GitOps Integration
+## 🎯 Goal
+By the end of today:
+
+GitHub Actions builds Docker image
+
+Pushes to Azure Container Registry (ACR)
+
+Updates Helm values automatically
+
+ArgoCD deploys new version
+
+🛠 Step 1 — Create GitHub Actions Workflow
+In your repo, create file: .github/workflows/ci.yml
+
+````yaml
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Login to Azure
+        run: |
+          az login --service-principal \
+          --username ${{ secrets.AZURE_CLIENT_ID }} \
+          --password ${{ secrets.AZURE_CLIENT_SECRET }} \
+          --tenant ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/ai-app:${{ github.sha }} .
+
+      - name: Push Image
+        run: |
+          az acr login --name ${{ secrets.ACR_NAME }}
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/ai-app:${{ github.sha }}
+````
+👉 This builds and pushes your image with a unique tag = commit SHA.
+
+🛠 Step 2 — Update Helm Values Automatically
+Add steps to the same workflow:
+
+````yaml
+      - name: Update Helm Values
+        run: |
+          sed -i "s/tag:.*/tag: ${{ github.sha }}/" ai-app-chart/values-dev.yaml
+
+      - name: Commit Changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add ai-app-chart/values-dev.yaml
+          git commit -m "Update image tag to ${{ github.sha }}"
+          git push
+`````
+👉 This updates the image tag in Git, commits, and pushes back.
+
+🛠 Step 3 — ArgoCD Sync
+ArgoCD sees the Git change → syncs automatically → cluster updates pods with new image.
+
+🧪 Step 4 — Test It
+Make a small code change in your FastAPI app.
+
+Push to GitHub.
+
+Watch GitHub Actions run → build + push image → update values.yaml.
+
+ArgoCD syncs → pods redeploy with new image.
+
+Verify:
+
+````bash
+kubectl get pods -n dev
+````
+👉 You should see new pods with updated image tag.
+
+✅ Day 11 Success Checklist
+CI pipeline builds image
+
+Image pushed to ACR
+
+values.yaml updated automatically
+
+ArgoCD deploys new version
+
+💡 Interview Upgrade
+If asked:
+
+> “How do you integrate CI/CD with GitOps?”
+
+Answer:
+
+> CI builds and pushes container images, then updates the Git repository with the new image tag. ArgoCD automatically syncs and deploys the changes to Kubernetes. This creates a fully automated, declarative pipeline.
