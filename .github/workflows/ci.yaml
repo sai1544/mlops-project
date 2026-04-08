@@ -9,37 +9,35 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write   # 👈 allows pushing commits
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Login to Azure
-        run: |
-          az login --service-principal \
-            --username ${{ secrets.AZURE_CLIENT_ID }} \
-            --password ${{ secrets.AZURE_CLIENT_SECRET }} \
-            --tenant ${{ secrets.AZURE_TENANT_ID }}
-  
+        run: az login --service-principal \
+          --username ${{ secrets.AZURE_CLIENT_ID }} \
+          --password ${{ secrets.AZURE_CLIENT_SECRET }} \
+          --tenant ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Build Docker Image
-        run: | 
-          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/ai-app:${{ github.sha }} .
+        run: docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/ai-app:${{ github.sha }} .
 
       - name: Push Image
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
           docker push ${{ secrets.ACR_NAME }}.azurecr.io/ai-app:${{ github.sha }}
+
       - name: Update Helm Values
         run: |
           sed -i "s/tag:.*/tag: ${{ github.sha }}/" ai-app-chart/values-dev.yaml
 
       - name: Commit Changes
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add ai-app-chart/values-dev.yaml
-          git commit -m "Update image tag to ${{ github.sha }}"
-          git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }} HEAD:main
-
+          git commit -m "Update image tag to ${{ github.sha }}" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
