@@ -1275,3 +1275,107 @@ If asked:
 Answer:
 
 > CI builds and pushes container images, then updates the Git repository with the new image tag. ArgoCD automatically syncs and deploys the changes to Kubernetes. This creates a fully automated, declarative pipeline.
+
+
+
+# Day 12 — Autoscaling AI Workloads with Kubernetes HPA
+
+## 🎯 Goal
+By the end of Day 12, the AI inference service is configured to **scale automatically** based on CPU usage:
+- Metrics Server installed and verified
+- Resource requests/limits defined in Deployment
+- Horizontal Pod Autoscaler (HPA) created
+- Pods scale up/down under simulated load
+
+---
+
+## 🛠 Step 1 — Verify Metrics Server
+Check if metrics are available:
+```bash
+kubectl top pods -n dev
+```
+If not working, install Metrics Server:
+
+```bash
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+```
+🛠 Step 2 — Add Resource Requests/Limits
+Update the Helm chart deployment (ai-app-chart/templates/deployment.yaml):
+
+```yaml
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+```
+Commit and push changes:
+
+```bash
+git add .
+git commit -m "Add resource requests/limits for AI app"
+git push
+```
+ArgoCD will sync and redeploy pods with resource constraints.
+
+🛠 Step 3 — Create HPA
+Create an autoscaler for the AI app:
+
+```bash
+kubectl autoscale deployment ai-app \
+  --cpu-percent=50 \
+  --min=2 \
+  --max=6 \
+  -n dev
+```
+Verify:
+
+```bash
+kubectl get hpa -n dev
+```
+Expected output:
+
+```Code
+NAME     REFERENCE            TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+ai-app   Deployment/ai-app    20%/50%   2         6         2          1m
+```
+🛠 Step 4 — Simulate Load
+Run a load generator:
+
+```bash
+kubectl run -it load-test --image=busybox -- /bin/sh
+```
+Inside the pod:
+
+```bash
+while true; do wget -q -O- http://ai-app.dev.svc.cluster.local; done
+```
+🧠 Step 5 — Observe Scaling
+Watch pods scale dynamically:
+
+```bash
+kubectl get pods -n dev -w
+```
+Pods should increase (2 → 3 → 4 …) as CPU usage rises.
+
+✅ Day 12 Success Checklist
+[x] Metrics Server installed
+
+[x] Resource requests/limits added
+
+[x] HPA created
+
+[x] Pods scaled under load
+
+💬 Interview Upgrade
+If asked:
+
+> “How do you scale ML workloads?”
+
+Answer:
+
+> I use Kubernetes Horizontal Pod Autoscaler to scale inference services dynamically based on CPU usage, ensuring efficient handling of traffic spikes.
+
+
