@@ -12,6 +12,8 @@ spec:
       labels:
         app: ai-app
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
         - name: ai-app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
