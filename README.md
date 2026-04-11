@@ -1296,6 +1296,7 @@ kubectl top pods -n dev
 ```
 If not working, install Metrics Server:
 
+
 ```bash
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
 ```
@@ -1379,3 +1380,130 @@ Answer:
 > I use Kubernetes Horizontal Pod Autoscaler to scale inference services dynamically based on CPU usage, ensuring efficient handling of traffic spikes.
 
 
+
+
+# Day 13 — Monitoring & Alerting (Prometheus + Grafana)
+
+## 🎯 Goal
+Set up observability for AI workloads:
+- Monitor CPU usage
+- Track pod and node metrics
+- Visualize system health in Grafana
+- Configure custom alerts in Prometheus
+
+---
+
+## 🛠 Step 1 — Install Monitoring Stack
+Add Helm repo and install kube-prometheus-stack:
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace
+```
+🛠 Step 2 — Verify Installation
+Check pods in the monitoring namespace:
+
+```bash
+kubectl get pods -n monitoring
+```
+🛠 Step 3 — Access Grafana
+Forward Grafana service to local port:
+
+```bash
+kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80
+```
+Open Grafana at:
+
+```Code
+http://localhost:3000
+Login credentials:
+
+Username: admin
+
+Password:
+
+```bash
+kubectl get secret monitoring-grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 -d
+```
+🧠 Grafana Dashboards to Check
+Kubernetes / Compute Resources / Cluster → CPU & memory usage
+
+Kubernetes / Compute Resources / Namespace (Pods) → Pod count & usage
+
+Kubernetes / Compute Resources / Node → Node health
+
+🛠 Step 4 — Create Custom Alert
+Define a PrometheusRule for high CPU usage:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ai-alerts
+  namespace: monitoring
+spec:
+  groups:
+  - name: ai.rules
+    rules:
+    - alert: HighCPU
+      expr: sum(rate(container_cpu_usage_seconds_total{namespace="dev"}[2m])) by (pod) > 0.05
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU detected"
+```
+Apply:
+
+```bash
+kubectl apply -f ai-alert.yaml
+```
+🛠 Step 5 — Verify Alerts
+Forward Prometheus service:
+
+```bash
+kubectl port-forward svc/monitoring-kube-prometheus-prometheus -n monitoring 9090:9090
+```
+Open:
+
+```Code
+http://localhost:9090/alerts
+```
+Check for HighCPU alert status:
+
+Inactive → condition not met
+
+Pending → condition met, waiting for for: 1m
+
+Firing → alert active
+
+🧪 Step 6 — Trigger Alert
+Run a load test to spike CPU:
+
+```bash
+kubectl run -it load-test --image=busybox -- /bin/sh
+```
+Inside container:
+
+```sh
+while true; do wget -q -O- http://ai-service.dev.svc.cluster.local; done
+```
+✅ Success Checklist
+[x] Prometheus installed
+
+[x] Grafana accessible
+
+[x] Dashboards visible
+
+[x] Custom alert created
+
+[x] Alert triggered under load
+
+💬 Interview Upgrade
+You can now say:
+
+“I implemented monitoring using Prometheus and Grafana, and configured custom alert rules to detect high CPU usage in AI workloads. I validated alerts by running synthetic load tests and visualized system health in Grafana dashboards.”
