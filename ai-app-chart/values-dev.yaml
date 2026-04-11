@@ -1,6 +1,6 @@
 replicaCount: 1
 image:
   repository: mlacr1544.azurecr.io/ai-app
-  tag: 74b4553aca4328404e11accca326fb013890f96f
+  tag: 897bf44a253cc3edc232f4a92789d000252d6ef2
   pullPolicy: IfNotPresent
 
